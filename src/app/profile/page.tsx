@@ -7,6 +7,7 @@ import {
 } from "@/lib/db";
 import { userKey } from "@/lib/current-user";
 import TraktSyncControls from "@/features/sync/TraktSyncControls";
+import ExportButtons from "@/features/export/ExportButtons";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -95,13 +96,22 @@ export default async function ProfilePage() {
               >
                 Trakt OAuth
               </a>{" "}
-              (needs TRAKT_CLIENT_ID + database).
+              to enable 2-way sync.
             </>
           )}
         </p>
       </div>
 
       <TraktSyncControls />
+
+      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-sm">
+        <h2 className="font-medium">Download your data</h2>
+        <p className="mt-1 text-zinc-400">
+          Export your movie and TV list as JSON or CSV — works whether your
+          lists live in the database or this browser.
+        </p>
+        <ExportButtons />
+      </div>
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-sm">
         <h2 className="font-medium">Storage</h2>
