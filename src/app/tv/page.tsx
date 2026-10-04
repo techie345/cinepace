@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import ListPage from "@/features/tracking/ListPage";
 
-export default async function AnimePage() {
+export default async function TvPage() {
   const session = await auth();
   if (!session?.user) redirect("/");
-  return <ListPage kind="anime" title="Anime list" />;
+  return <ListPage kind="tv" title="TV shows" />;
 }

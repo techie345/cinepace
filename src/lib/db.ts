@@ -1,14 +1,12 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
-export type MediaKind = "anime" | "manga";
+export type MediaKind = "movie" | "tv";
 export type EntryStatus =
   | "watching"
-  | "reading"
   | "completed"
   | "on_hold"
   | "dropped"
-  | "plan_to_watch"
-  | "plan_to_read";
+  | "plan_to_watch";
 
 export interface Entry {
   id: string;
@@ -21,7 +19,8 @@ export interface Entry {
   total: number | null;
   score: number | null; // 0-10
   notes: string | null;
-  anilistId: number | null;
+  tmdbId: number | null;
+  traktId: number | null;
   updatedAt: string;
 }
 
@@ -44,6 +43,10 @@ async function ensureSchema(): Promise<boolean> {
   const db = client();
   if (!db) return false;
   if (ensured) return true;
+  // Original table (anime/manga era). Kept as-is for fresh DBs; the
+  // migration steps below widen it for movies/tv. This DB is shared with
+  // the anipace app, so every change here must stay backward compatible:
+  // existing kinds/columns keep working, new ones are additive.
   await db`
     CREATE TABLE IF NOT EXISTS entries (
       id TEXT PRIMARY KEY,
@@ -63,10 +66,27 @@ async function ensureSchema(): Promise<boolean> {
   await db`
     CREATE INDEX IF NOT EXISTS entries_user_kind_idx ON entries (user_id, kind);
   `;
+  // Widen the kind check so movie/tv rows coexist with anime/manga rows.
+  // (Postgres auto-named the inline CHECK `entries_kind_check`.)
   await db`
-    CREATE TABLE IF NOT EXISTS anilist_tokens (
+    ALTER TABLE entries DROP CONSTRAINT IF EXISTS entries_kind_check;
+  `;
+  await db`
+    ALTER TABLE entries
+      ADD CONSTRAINT entries_kind_check
+      CHECK (kind IN ('anime', 'manga', 'movie', 'tv'));
+  `;
+  await db`
+    ALTER TABLE entries ADD COLUMN IF NOT EXISTS tmdb_id INTEGER;
+  `;
+  await db`
+    ALTER TABLE entries ADD COLUMN IF NOT EXISTS trakt_id INTEGER;
+  `;
+  await db`
+    CREATE TABLE IF NOT EXISTS trakt_tokens (
       user_id TEXT PRIMARY KEY,
       access_token TEXT NOT NULL,
+      refresh_token TEXT,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `;
@@ -77,10 +97,10 @@ async function ensureSchema(): Promise<boolean> {
     WHERE user_id LIKE '%@%' AND user_id <> LOWER(user_id);
   `;
   await db`
-    UPDATE anilist_tokens SET user_id = LOWER(user_id), updated_at = NOW()
+    UPDATE trakt_tokens SET user_id = LOWER(user_id), updated_at = NOW()
     WHERE user_id LIKE '%@%' AND user_id <> LOWER(user_id)
     AND NOT EXISTS (
-      SELECT 1 FROM anilist_tokens t2 WHERE t2.user_id = LOWER(anilist_tokens.user_id)
+      SELECT 1 FROM trakt_tokens t2 WHERE t2.user_id = LOWER(trakt_tokens.user_id)
     );
   `;
   ensured = true;
@@ -99,7 +119,8 @@ function toEntry(row: Record<string, unknown>): Entry {
     total: row.total == null ? null : Number(row.total),
     score: row.score == null ? null : Number(row.score),
     notes: (row.notes as string | null) ?? null,
-    anilistId: row.anilist_id == null ? null : Number(row.anilist_id),
+    tmdbId: row.tmdb_id == null ? null : Number(row.tmdb_id),
+    traktId: row.trakt_id == null ? null : Number(row.trakt_id),
     updatedAt: new Date(row.updated_at as string).toISOString(),
   };
 }
@@ -128,12 +149,13 @@ export async function upsertEntry(
     data.id ??
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   const rows = await db`
-    INSERT INTO entries (id, user_id, kind, title, cover_url, status, progress, total, score, notes, anilist_id, updated_at)
-    VALUES (${id}, ${userId}, ${data.kind}, ${data.title}, ${data.coverUrl}, ${data.status}, ${data.progress}, ${data.total}, ${data.score}, ${data.notes}, ${data.anilistId}, NOW())
+    INSERT INTO entries (id, user_id, kind, title, cover_url, status, progress, total, score, notes, tmdb_id, trakt_id, updated_at)
+    VALUES (${id}, ${userId}, ${data.kind}, ${data.title}, ${data.coverUrl}, ${data.status}, ${data.progress}, ${data.total}, ${data.score}, ${data.notes}, ${data.tmdbId}, ${data.traktId}, NOW())
     ON CONFLICT (id) DO UPDATE SET
       kind = EXCLUDED.kind, title = EXCLUDED.title, cover_url = EXCLUDED.cover_url,
       status = EXCLUDED.status, progress = EXCLUDED.progress, total = EXCLUDED.total,
-      score = EXCLUDED.score, notes = EXCLUDED.notes, anilist_id = EXCLUDED.anilist_id,
+      score = EXCLUDED.score, notes = EXCLUDED.notes, tmdb_id = EXCLUDED.tmdb_id,
+      trakt_id = EXCLUDED.trakt_id,
       updated_at = NOW()
     RETURNING *;
   `;
@@ -154,57 +176,62 @@ export async function deleteEntry(
 
 export async function statsFor(
   userId: string,
-): Promise<{ anime: number; manga: number; completed: number } | null> {
+): Promise<{ movies: number; tv: number; completed: number } | null> {
   const db = client();
   if (!db) return null;
   await ensureSchema();
   const rows = await db`
     SELECT
-      COUNT(*) FILTER (WHERE kind = 'anime') AS anime,
-      COUNT(*) FILTER (WHERE kind = 'manga') AS manga,
+      COUNT(*) FILTER (WHERE kind = 'movie') AS movies,
+      COUNT(*) FILTER (WHERE kind = 'tv') AS tv,
       COUNT(*) FILTER (WHERE status = 'completed') AS completed
     FROM entries WHERE user_id = ${userId};
   `;
   const r = rows[0] as Record<string, unknown>;
   return {
-    anime: Number(r.anime),
-    manga: Number(r.manga),
+    movies: Number(r.movies),
+    tv: Number(r.tv),
     completed: Number(r.completed),
   };
 }
 
-export async function saveAnilistToken(
+export async function saveTraktToken(
   userId: string,
   accessToken: string,
+  refreshToken?: string | null,
 ): Promise<boolean> {
   const db = client();
   if (!db) return false;
   await ensureSchema();
   await db`
-    INSERT INTO anilist_tokens (user_id, access_token, updated_at)
-    VALUES (${userId}, ${accessToken}, NOW())
+    INSERT INTO trakt_tokens (user_id, access_token, refresh_token, updated_at)
+    VALUES (${userId}, ${accessToken}, ${refreshToken ?? null}, NOW())
     ON CONFLICT (user_id) DO UPDATE SET
-      access_token = EXCLUDED.access_token, updated_at = NOW();
+      access_token = EXCLUDED.access_token, refresh_token = EXCLUDED.refresh_token, updated_at = NOW();
   `;
   return true;
 }
 
-export async function getAnilistToken(
+export async function getTraktToken(
   userId: string,
-): Promise<string | null> {
+): Promise<{ accessToken: string; refreshToken: string | null } | null> {
   const db = client();
   if (!db) return null;
   await ensureSchema();
   const rows =
-    await db`SELECT access_token FROM anilist_tokens WHERE user_id = ${userId} LIMIT 1`;
+    await db`SELECT access_token, refresh_token FROM trakt_tokens WHERE user_id = ${userId} LIMIT 1`;
   if (rows.length === 0) return null;
-  return String((rows[0] as Record<string, unknown>).access_token);
+  const r = rows[0] as Record<string, unknown>;
+  return {
+    accessToken: String(r.access_token),
+    refreshToken: (r.refresh_token as string | null) ?? null,
+  };
 }
 
-export async function deleteAnilistToken(userId: string): Promise<boolean> {
+export async function deleteTraktToken(userId: string): Promise<boolean> {
   const db = client();
   if (!db) return false;
   await ensureSchema();
-  await db`DELETE FROM anilist_tokens WHERE user_id = ${userId}`;
+  await db`DELETE FROM trakt_tokens WHERE user_id = ${userId}`;
   return true;
 }

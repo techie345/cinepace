@@ -7,13 +7,13 @@ export default async function Navbar() {
     <header className="border-b border-zinc-800 bg-zinc-950/80 sticky top-0 z-10 backdrop-blur">
       <nav className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3">
         <Link href="/" className="text-lg font-bold tracking-tight">
-          Ani<span className="text-indigo-400">Pace</span>
+          Cine<span className="text-indigo-400">Pace</span>
         </Link>
         {session?.user && (
           <div className="flex gap-3 text-sm text-zinc-300">
             <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
-            <Link href="/anime" className="hover:text-white">Anime</Link>
-            <Link href="/manga" className="hover:text-white">Manga</Link>
+            <Link href="/movies" className="hover:text-white">Movies</Link>
+            <Link href="/tv" className="hover:text-white">TV</Link>
             <Link href="/search" className="hover:text-white">Search</Link>
             <Link href="/profile" className="hover:text-white">Profile</Link>
           </div>

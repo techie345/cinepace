@@ -13,7 +13,7 @@ import {
 
 function parseBody(json: unknown): Omit<Entry, "userId" | "updatedAt" | "id"> & { id?: string } {
   const b = json as Record<string, unknown>;
-  const kind = b.kind === "manga" ? ("manga" as MediaKind) : ("anime" as MediaKind);
+  const kind = b.kind === "tv" ? ("tv" as MediaKind) : ("movie" as MediaKind);
   return {
     id: typeof b.id === "string" ? b.id : undefined,
     kind,
@@ -24,11 +24,12 @@ function parseBody(json: unknown): Omit<Entry, "userId" | "updatedAt" | "id"> & 
     total: b.total == null ? null : Number(b.total),
     score: b.score == null ? null : Number(b.score),
     notes: typeof b.notes === "string" ? b.notes : null,
-    anilistId: b.anilistId == null ? null : Number(b.anilistId),
+    tmdbId: b.tmdbId == null ? null : Number(b.tmdbId),
+    traktId: b.traktId == null ? null : Number(b.traktId),
   };
 }
 
-// GET /api/entries?kind=anime — server list (DB mode). Falls back to 503 so the
+// GET /api/entries?kind=movie — server list (DB mode). Falls back to 503 so the
 // client uses localStorage when no DATABASE_URL is configured.
 export async function GET(req: Request) {
   if (!isDbConfigured())
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
   const kind = new URL(req.url).searchParams.get("kind");
   const entries = await listEntries(
     userKey(session),
-    kind === "anime" || kind === "manga" ? kind : undefined,
+    kind === "movie" || kind === "tv" ? kind : undefined,
   );
   return NextResponse.json({ entries });
 }

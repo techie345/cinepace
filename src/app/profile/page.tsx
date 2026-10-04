@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { auth, signOut } from "@/auth";
 import {
-  getAnilistToken,
+  getTraktToken,
   isDbConfigured,
   statsFor,
 } from "@/lib/db";
 import { userKey } from "@/lib/current-user";
-import AniListSyncControls from "@/features/sync/AniListSyncControls";
+import TraktSyncControls from "@/features/sync/TraktSyncControls";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -14,11 +14,11 @@ export default async function ProfilePage() {
   const user = session.user;
   const uid = userKey(session);
   const db = isDbConfigured();
-  const [stats, anilistToken] = await Promise.all([
+  const [stats, traktToken] = await Promise.all([
     statsFor(uid).catch(() => null),
-    getAnilistToken(uid).catch(() => null),
+    getTraktToken(uid).catch(() => null),
   ]);
-  const anilistConnected = Boolean(anilistToken);
+  const traktConnected = Boolean(traktToken);
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -46,8 +46,8 @@ export default async function ProfilePage() {
 
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Anime", value: stats?.anime },
-          { label: "Manga", value: stats?.manga },
+          { label: "Movies", value: stats?.movies },
+          { label: "TV shows", value: stats?.tv },
           { label: "Completed", value: stats?.completed },
         ].map((s) => (
           <div
@@ -70,20 +70,20 @@ export default async function ProfilePage() {
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-sm">
         <div className="flex items-center justify-between">
-          <h2 className="font-medium">AniList sync</h2>
+          <h2 className="font-medium">Trakt sync</h2>
           <span
-            className={`rounded-full px-2.5 py-1 text-xs ${anilistConnected ? "bg-emerald-950 text-emerald-300" : "bg-zinc-800 text-zinc-400"}`}
+            className={`rounded-full px-2.5 py-1 text-xs ${traktConnected ? "bg-emerald-950 text-emerald-300" : "bg-zinc-800 text-zinc-400"}`}
           >
-            {anilistConnected ? "Connected" : "Not connected"}
+            {traktConnected ? "Connected" : "Not connected"}
           </span>
         </div>
         <p className="mt-1 text-zinc-400">
-          Import your public AniList lists by username from the{" "}
+          Import your Trakt watchlist and history from the{" "}
           <a href="/search" className="text-indigo-400 hover:underline">
             Search page
           </a>
           . For 2-way sync,{" "}
-          {anilistConnected ? (
+          {traktConnected ? (
             <>
               your account is linked — pull, push, or sync both ways below.
             </>
@@ -91,18 +91,18 @@ export default async function ProfilePage() {
             <>
               connect via{" "}
               <a
-                href="/api/anilist/auth"
+                href="/api/trakt/auth"
                 className="text-indigo-400 hover:underline"
               >
-                AniList OAuth
+                Trakt OAuth
               </a>{" "}
-              (needs ANILIST_CLIENT_ID/SECRET + database).
+              (needs TRAKT_CLIENT_ID/SECRET + database).
             </>
           )}
         </p>
       </div>
 
-      <AniListSyncControls />
+      <TraktSyncControls />
 
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 text-sm">
         <h2 className="font-medium">Storage</h2>

@@ -8,14 +8,14 @@ describe("EntryForm", () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(
-      <EntryForm kind="anime" onSave={onSave} onCancel={() => {}} />,
+      <EntryForm kind="movie" onSave={onSave} onCancel={() => {}} />,
     );
-    await user.type(screen.getByPlaceholderText("Title"), "  Bleach  ");
+    await user.type(screen.getByPlaceholderText("Title"), "  Dune  ");
     await user.click(screen.getByText("Add"));
     expect(onSave).toHaveBeenCalledOnce();
     expect(onSave.mock.calls[0][0]).toMatchObject({
-      kind: "anime",
-      title: "Bleach",
+      kind: "movie",
+      title: "Dune",
       status: "plan_to_watch",
     });
   });
@@ -24,7 +24,7 @@ describe("EntryForm", () => {
     const user = userEvent.setup();
     const onSave = vi.fn();
     render(
-      <EntryForm kind="manga" onSave={onSave} onCancel={() => {}} />,
+      <EntryForm kind="tv" onSave={onSave} onCancel={() => {}} />,
     );
     await user.click(screen.getByText("Add"));
     expect(onSave).not.toHaveBeenCalled();

@@ -12,9 +12,9 @@ export default async function DashboardPage() {
   const stats = await statsFor(uid).catch(() => null);
 
   const cards = [
-    { href: "/anime", title: "Anime list", desc: "Shows you're watching & planning", count: stats?.anime },
-    { href: "/manga", title: "Manga list", desc: "What you're reading & planning", count: stats?.manga },
-    { href: "/search", title: "Search & import", desc: "Find titles on AniList or import your lists" },
+    { href: "/movies", title: "Movies", desc: "What you're watching & planning", count: stats?.movies },
+    { href: "/tv", title: "TV shows", desc: "Series you're following & planning", count: stats?.tv },
+    { href: "/search", title: "Search & import", desc: "Find titles on TMDB or import from Trakt" },
     { href: "/profile", title: "Profile", desc: "Your account & storage info" },
   ];
 
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
           {stats
-            ? `You have ${stats.anime} anime and ${stats.manga} manga tracked (${stats.completed} completed).`
+            ? `You have ${stats.movies} movies and ${stats.tv} shows tracked (${stats.completed} completed).`
             : "Your lists live in this browser for now — add a database later to sync everywhere."}
         </p>
       </div>

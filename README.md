@@ -11,10 +11,10 @@ GitHub + Discord login, and **Trakt** upstream for watch history/sync with
 
 ## Upstream map (AniList → Trakt/TMDB)
 
-- Search/metadata: AniList GraphQL → TMDB (`/api/tmdb/search`, `src/features/discovery/tmdb.ts` — TODO)
-- 2-way sync: AniList OAuth → Trakt OAuth (`/api/trakt/*`, `src/features/sync/trakt-*` — TODO)
-- Lists: anime/manga → movies/tv (`src/lib/db.ts` MediaKind — TODO)
-- Storage: browser localStorage now (`cinepace:entries:v1`); Neon Postgres when `DATABASE_URL` set
+- Search/metadata: TMDB (`/api/tmdb/search`, `src/features/discovery/tmdb.ts`)
+- 2-way sync: Trakt OAuth (`/api/trakt/*`, `src/features/sync/trakt-sync.ts`)
+- Lists: movies/tv (`src/lib/db.ts` MediaKind)
+- Storage: browser localStorage (`cinepace:entries:v1`); Neon Postgres when `DATABASE_URL` set (shared with anipace — schema migration is additive, old kinds keep working)
 
 ## Local dev
 

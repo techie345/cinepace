@@ -19,7 +19,7 @@ export function EntryForm({
 }) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [status, setStatus] = useState<EntryStatus>(
-    initial?.status ?? (kind === "anime" ? "plan_to_watch" : "plan_to_read"),
+    initial?.status ?? "plan_to_watch",
   );
   const [progress, setProgress] = useState(initial?.progress ?? 0);
   const [total, setTotal] = useState(initial?.total?.toString() ?? "");
@@ -42,7 +42,8 @@ export function EntryForm({
           total: total === "" ? null : Number(total),
           score: score === "" ? null : Number(score),
           notes: notes || null,
-          anilistId: initial?.anilistId ?? null,
+          tmdbId: initial?.tmdbId ?? null,
+          traktId: initial?.traktId ?? null,
         });
       }}
     >

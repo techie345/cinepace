@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 
-export default function AniListSyncControls() {
+export default function TraktSyncControls() {
   const [connected, setConnected] = useState<boolean | null>(null);
   const [reason, setReason] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetch("/api/anilist/status")
+    fetch("/api/trakt/status")
       .then((r) => r.json())
       .then((j) => {
         setConnected(Boolean(j.connected));
@@ -22,7 +22,7 @@ export default function AniListSyncControls() {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch("/api/anilist/sync", {
+      const res = await fetch("/api/trakt/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ direction }),
@@ -48,24 +48,24 @@ export default function AniListSyncControls() {
   }
 
   if (connected === null)
-    return <p className="text-sm text-zinc-500">Checking AniList…</p>;
+    return <p className="text-sm text-zinc-500">Checking Trakt…</p>;
 
   if (!connected)
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <h2 className="font-medium">AniList 2-way sync</h2>
+        <h2 className="font-medium">Trakt 2-way sync</h2>
         <p className="mt-1 text-sm text-zinc-400">
           {reason === "no-db"
             ? "Connect Neon Postgres first — tokens need a database."
             : reason === "misconfigured"
-              ? "Set ANILIST_CLIENT_ID / ANILIST_CLIENT_SECRET (anilist.co/settings/developer)."
-              : "Connect your AniList account to push and pull list changes."}
+              ? "Set TRAKT_CLIENT_ID / TRAKT_CLIENT_SECRET (trakt.tv/oauth/applications)."
+              : "Connect your Trakt account to push and pull list changes."}
         </p>
         <a
-          href="/api/anilist/auth"
+          href="/api/trakt/auth"
           className="mt-3 inline-block rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium hover:bg-indigo-500"
         >
-          Connect AniList
+          Connect Trakt
         </a>
         {msg && <p className="mt-2 text-sm text-red-400">{msg}</p>}
       </div>
@@ -73,9 +73,11 @@ export default function AniListSyncControls() {
 
   return (
     <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <h2 className="font-medium">AniList 2-way sync</h2>
+      <h2 className="font-medium">Trakt 2-way sync</h2>
       <p className="mt-1 text-sm text-zinc-400">
-        Pull your AniList lists down, push local progress up, or do both.
+        Pull your Trakt watchlist/history down, push local progress up, or do
+        both. Show episode progress syncs down from Trakt; pushing covers
+        movies, watchlist and ratings.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -83,14 +85,14 @@ export default function AniListSyncControls() {
           disabled={busy}
           className="rounded-md bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700 disabled:opacity-50"
         >
-          Pull from AniList
+          Pull from Trakt
         </button>
         <button
           onClick={() => void runSync("push")}
           disabled={busy}
           className="rounded-md bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700 disabled:opacity-50"
         >
-          Push to AniList
+          Push to Trakt
         </button>
         <button
           onClick={() => void runSync("both")}

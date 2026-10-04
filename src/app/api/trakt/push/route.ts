@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { getAnilistToken, isDbConfigured, listEntries } from "@/lib/db";
+import { getTraktToken, isDbConfigured, listEntries } from "@/lib/db";
 import { userKey } from "@/lib/current-user";
-import { pushEntryToAniList } from "@/features/sync/anilist-sync";
+import { pushEntryToTrakt } from "@/features/sync/trakt-sync";
 
-// POST /api/anilist/push { id: string } — push one local entry to AniList.
+// POST /api/trakt/push { id: string } — push one local entry to Trakt.
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user)
@@ -15,33 +15,36 @@ export async function POST(req: Request) {
       { status: 503 },
     );
   const uid = userKey(session);
-  const token = await getAnilistToken(uid);
-  if (!token)
+  const stored = await getTraktToken(uid);
+  if (!stored)
     return NextResponse.json(
-      { error: "AniList not connected." },
+      { error: "Trakt not connected." },
       { status: 409 },
     );
+  const clientId = process.env.TRAKT_CLIENT_ID;
+  if (!clientId)
+    return NextResponse.json({ error: "Missing TRAKT_CLIENT_ID." }, { status: 500 });
   const { id } = (await req.json().catch(() => ({}))) as { id?: string };
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
   const entries = (await listEntries(uid)) ?? [];
   const entry = entries.find((e) => e.id === id);
   if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (entry.anilistId == null)
+  if (entry.traktId == null && entry.tmdbId == null)
     return NextResponse.json(
-      { error: "Entry has no AniList id — add it via Search first." },
+      { error: "Entry has no Trakt/TMDB id — add it via Search first." },
       { status: 400 },
     );
 
   try {
-    await pushEntryToAniList(token, {
-      anilistId: entry.anilistId,
-      status: entry.status,
-      progress: entry.progress,
-      score: entry.score,
+    const res = await pushEntryToTrakt(stored.accessToken, clientId, {
       kind: entry.kind,
+      status: entry.status,
+      score: entry.score,
+      traktId: entry.traktId,
+      tmdbId: entry.tmdbId,
     });
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, touched: res.touched });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Push failed" },

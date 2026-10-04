@@ -40,14 +40,14 @@ export default function ListPage({
           className="ml-auto rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
         >
           <option value="all">All ({entries.length})</option>
-          <option value={kind === "anime" ? "watching" : "reading"}>
+          <option value="watching">
             In progress
           </option>
           <option value="completed">Completed</option>
           <option value="on_hold">On hold</option>
           <option value="dropped">Dropped</option>
-          <option value={kind === "anime" ? "plan_to_watch" : "plan_to_read"}>
-            Plan to {kind === "anime" ? "watch" : "read"}
+          <option value="plan_to_watch">
+            Plan to watch
           </option>
         </select>
         <button
@@ -76,7 +76,7 @@ export default function ListPage({
         <p className="rounded-lg border border-dashed border-zinc-800 p-8 text-center text-zinc-500">
           Nothing here yet. Add one manually or{" "}
           <a href="/search" className="text-indigo-400 hover:underline">
-            search AniList
+            search TMDB
           </a>
           .
         </p>

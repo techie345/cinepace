@@ -2,16 +2,18 @@ import type { Entry, EntryStatus } from "@/lib/db";
 
 export const STATUSES: { value: EntryStatus; label: string }[] = [
   { value: "watching", label: "Watching" },
-  { value: "reading", label: "Reading" },
   { value: "completed", label: "Completed" },
   { value: "on_hold", label: "On hold" },
   { value: "dropped", label: "Dropped" },
   { value: "plan_to_watch", label: "Plan to watch" },
-  { value: "plan_to_read", label: "Plan to read" },
 ];
 
 export function statusLabel(s: EntryStatus) {
   return STATUSES.find((x) => x.value === s)?.label ?? s;
+}
+
+export function progressUnit(kind: Entry["kind"]) {
+  return kind === "tv" ? "eps" : "";
 }
 
 export function EntryCard({
@@ -46,7 +48,8 @@ export function EntryCard({
         </div>
         <p className="mt-1 text-sm text-zinc-400">
           {entry.progress}
-          {entry.total != null ? ` / ${entry.total}` : ""} eps
+          {entry.total != null ? ` / ${entry.total}` : ""}
+          {progressUnit(entry.kind) ? ` ${progressUnit(entry.kind)}` : ""}
           {entry.score != null ? ` · ★ ${entry.score}/10` : ""}
         </p>
         {entry.notes && (
@@ -65,14 +68,14 @@ export function EntryCard({
           >
             Remove
           </button>
-          {entry.anilistId && (
+          {entry.tmdbId && (
             <a
-              href={`https://anilist.co/${entry.kind === "anime" ? "anime" : "manga"}/${entry.anilistId}`}
+              href={`https://www.themoviedb.org/${entry.kind === "tv" ? "tv" : "movie"}/${entry.tmdbId}`}
               target="_blank"
               rel="noreferrer"
               className="rounded px-2 py-1 text-zinc-400 hover:text-white"
             >
-              AniList ↗
+              TMDB ↗
             </a>
           )}
         </div>
