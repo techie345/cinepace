@@ -61,7 +61,9 @@ describe("buildAuthorizeUrl", () => {
         codeChallenge: "CHALLENGE",
       }),
     );
-    expect(url.origin + url.pathname).toBe("https://trakt.tv/oauth/authorize");
+    expect(url.origin + url.pathname).toBe(
+      "https://auth.trakt.tv/oauth/authorize",
+    );
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("client_id")).toBe("abc");
     expect(url.searchParams.get("code_challenge")).toBe("CHALLENGE");

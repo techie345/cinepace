@@ -13,7 +13,7 @@
 import type { EntryStatus, MediaKind } from "@/lib/db";
 
 export const TRAKT_API = "https://api.trakt.tv";
-export const TRAKT_AUTH_URL = "https://trakt.tv/oauth/authorize";
+export const TRAKT_AUTH_URL = "https://auth.trakt.tv/oauth/authorize";
 export const TRAKT_TOKEN_URL = "https://api.trakt.tv/oauth/token";
 
 /** Stay polite to the Trakt rate limit. Pause this long between mutations. */
@@ -169,7 +169,10 @@ export async function exchangeCodeForToken(args: {
     }),
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`Trakt token exchange failed: ${res.status}`);
+  if (!res.ok) {
+    const detail = (await res.text().catch(() => "")).slice(0, 300);
+    throw new Error(`Trakt token exchange failed: ${res.status} ${detail}`);
+  }
   return (await res.json()) as {
     access_token: string;
     refresh_token?: string;
