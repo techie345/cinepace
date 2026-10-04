@@ -29,7 +29,8 @@ export async function POST(req: Request) {
 
   const entries = (await listEntries(uid)) ?? [];
   const entry = entries.find((e) => e.id === id);
-  if (!entry) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!entry || (entry.kind !== "movie" && entry.kind !== "tv"))
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (entry.traktId == null && entry.tmdbId == null)
     return NextResponse.json(
       { error: "Entry has no Trakt/TMDB id — add it via Search first." },

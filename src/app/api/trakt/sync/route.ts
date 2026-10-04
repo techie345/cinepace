@@ -100,6 +100,8 @@ export async function POST(req: Request) {
       const entries = (await listEntries(uid)) ?? [];
       let first = true;
       for (const entry of entries) {
+        // Shared table with anipace: never push anime/manga rows to Trakt.
+        if (entry.kind !== "movie" && entry.kind !== "tv") continue;
         if (entry.traktId == null && entry.tmdbId == null) continue;
         const keys = [
           entry.traktId != null ? `trakt:${entry.traktId}` : null,
