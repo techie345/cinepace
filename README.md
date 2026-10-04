@@ -1,11 +1,11 @@
 # CinePace — Movie & TV Tracker (fork of AniPace)
 
 Full-stack tracking app built on **Next.js 16** (App Router), **Auth.js v5**
-GitHub + Discord login, and **Trakt** upstream for watch history/sync with
+Discord login, and **Trakt** upstream for watch history/sync with
 **TMDB** metadata/posters. Deploys to Vercel.
 
 > Forked from `anipace` (Anime & Manga Tracker, AniList upstream).
-> Auth (`src/auth.ts` — GitHub + Discord) is unchanged.
+> Auth is Discord-only (`src/auth.ts`).
 > AniList code under `src/features/discovery/anilist.*`, `src/features/sync/anilist-*`,
 > `src/app/api/anilist/*` is the migration source — being replaced by TMDB + Trakt.
 
@@ -20,13 +20,11 @@ GitHub + Discord login, and **Trakt** upstream for watch history/sync with
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in GitHub/Discord OAuth credentials + TMDB key + Trakt app
+cp .env.example .env.local   # fill in Discord OAuth credentials + TMDB key + Trakt app
 npm run dev
 npm test
 ```
 
-GitHub OAuth app: https://github.com/settings/developers → New OAuth App.
-Callback URL: `http://localhost:3000/api/auth/callback/github`.
 Discord app: https://discord.com/developers/applications → OAuth2 → Redirects.
 Add `http://localhost:3000/api/auth/callback/discord` (scopes: identify, email).
 TMDB: https://www.themoviedb.org/settings/api → API Key.
@@ -43,7 +41,6 @@ vercel env pull .env.local
 
 Set env vars in Dashboard → Project → Settings → Environment Variables:
 
-- `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
 - `AUTH_DISCORD_ID`, `AUTH_DISCORD_SECRET`
 - `TMDB_API_KEY`
 - `TRAKT_CLIENT_ID`, `TRAKT_CLIENT_SECRET`

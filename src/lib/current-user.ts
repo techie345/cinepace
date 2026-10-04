@@ -1,5 +1,5 @@
 // Stable per-user key shared by every server route.
-// Same email on GitHub and Discord → same key → same entries + Trakt token.
+// Keyed on the Discord email → same entries + Trakt token.
 // Deliberately simple (no users/accounts tables): fine for a handful of users.
 
 export function canonicalEmail(email: string): string {
