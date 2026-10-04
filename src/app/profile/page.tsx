@@ -95,7 +95,7 @@ export default async function ProfilePage() {
               >
                 Trakt OAuth
               </a>{" "}
-              (needs TRAKT_CLIENT_ID/SECRET + database).
+              (needs TRAKT_CLIENT_ID + database).
             </>
           )}
         </p>

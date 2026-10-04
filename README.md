@@ -43,6 +43,6 @@ Set env vars in Dashboard → Project → Settings → Environment Variables:
 
 - `AUTH_DISCORD_ID`, `AUTH_DISCORD_SECRET`
 - `TMDB_API_KEY`
-- `TRAKT_CLIENT_ID`, `TRAKT_CLIENT_SECRET`
+- `TRAKT_CLIENT_ID` (PKCE sign-in — no client secret needed)
 - `AUTH_SECRET`
 - `AUTH_TRUST_HOST=true` is set in code via `trustHost`

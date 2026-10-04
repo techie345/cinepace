@@ -58,7 +58,7 @@ export default function TraktSyncControls() {
           {reason === "no-db"
             ? "Connect Neon Postgres first — tokens need a database."
             : reason === "misconfigured"
-              ? "Set TRAKT_CLIENT_ID / TRAKT_CLIENT_SECRET (trakt.tv/oauth/applications)."
+              ? "Set TRAKT_CLIENT_ID (trakt.tv/oauth/applications). No secret needed — sign-in uses PKCE."
               : "Connect your Trakt account to push and pull list changes."}
         </p>
         <a

@@ -80,14 +80,62 @@ export function toTraktIds(entry: {
 export function buildAuthorizeUrl(args: {
   clientId: string;
   redirectUri: string;
+  codeChallenge: string;
   state?: string;
 }): string {
   const u = new URL(TRAKT_AUTH_URL);
   u.searchParams.set("response_type", "code");
   u.searchParams.set("client_id", args.clientId);
   u.searchParams.set("redirect_uri", args.redirectUri);
+  u.searchParams.set("code_challenge", args.codeChallenge);
+  u.searchParams.set("code_challenge_method", "S256");
   if (args.state) u.searchParams.set("state", args.state);
   return u.toString();
+}
+
+/** Cookie holding the PKCE verifier between /api/trakt/auth and the callback. */
+export const TRAKT_PKCE_COOKIE = "trakt_pkce_verifier";
+export const TRAKT_PKCE_COOKIE_PATH = "/api/trakt/callback";
+
+function base64Url(bytes: Uint8Array): string {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+/** S256 PKCE challenge for a verifier (RFC 7636). */
+export async function toCodeChallenge(verifier: string): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return base64Url(new Uint8Array(digest));
+}
+
+/** Fresh PKCE pair: random 43-char verifier + its S256 challenge. */
+export async function createPkcePair(): Promise<{
+  verifier: string;
+  challenge: string;
+}> {
+  const raw = globalThis.crypto.getRandomValues(new Uint8Array(32));
+  const verifier = base64Url(raw);
+  return { verifier, challenge: await toCodeChallenge(verifier) };
+}
+
+/** Read a cookie value off a Request's Cookie header. */
+export function getRequestCookie(
+  req: Request,
+  name: string,
+): string | null {
+  const header = req.headers.get("cookie");
+  if (!header) return null;
+  for (const part of header.split(";")) {
+    const i = part.indexOf("=");
+    if (i < 0) continue;
+    if (part.slice(0, i).trim() === name)
+      return decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return null;
 }
 
 /** Canonical redirect URI for Trakt OAuth.
@@ -101,9 +149,9 @@ export function getTraktRedirectUri(req: Request): string {
 
 export async function exchangeCodeForToken(args: {
   clientId: string;
-  clientSecret: string;
   redirectUri: string;
   code: string;
+  codeVerifier: string;
 }): Promise<{
   access_token: string;
   refresh_token?: string;
@@ -115,9 +163,9 @@ export async function exchangeCodeForToken(args: {
     body: JSON.stringify({
       code: args.code,
       client_id: args.clientId,
-      client_secret: args.clientSecret,
       redirect_uri: args.redirectUri,
       grant_type: "authorization_code",
+      code_verifier: args.codeVerifier,
     }),
     cache: "no-store",
   });

@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { isDbConfigured } from "@/lib/db";
-import { buildAuthorizeUrl, getTraktRedirectUri } from "@/features/sync/trakt-sync";
+import {
+  buildAuthorizeUrl,
+  createPkcePair,
+  getTraktRedirectUri,
+  TRAKT_PKCE_COOKIE,
+  TRAKT_PKCE_COOKIE_PATH,
+} from "@/features/sync/trakt-sync";
 
-// GET /api/trakt/auth — redirect the signed-in user to Trakt OAuth.
+// GET /api/trakt/auth — redirect the signed-in user to Trakt OAuth (PKCE,
+// no client secret: the verifier travels in a short-lived httpOnly cookie).
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user)
@@ -20,5 +27,16 @@ export async function GET(req: Request) {
       { status: 500 },
     );
   const redirectUri = getTraktRedirectUri(req);
-  return NextResponse.redirect(buildAuthorizeUrl({ clientId, redirectUri }));
+  const { verifier, challenge } = await createPkcePair();
+  const res = NextResponse.redirect(
+    buildAuthorizeUrl({ clientId, redirectUri, codeChallenge: challenge }),
+  );
+  res.cookies.set(TRAKT_PKCE_COOKIE, verifier, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 600,
+    path: TRAKT_PKCE_COOKIE_PATH,
+  });
+  return res;
 }

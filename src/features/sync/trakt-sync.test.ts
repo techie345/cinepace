@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   buildAuthorizeUrl,
+  createPkcePair,
+  exchangeCodeForToken,
+  getRequestCookie,
   pullViewerLists,
   pushEntryToTrakt,
+  toCodeChallenge,
   toTraktIds,
   toTraktRating,
   traktHome,
@@ -49,13 +53,69 @@ describe("toTraktIds", () => {
 });
 
 describe("buildAuthorizeUrl", () => {
-  it("points at Trakt OAuth with code flow", () => {
+  it("points at Trakt OAuth with code flow + PKCE S256", () => {
     const url = new URL(
-      buildAuthorizeUrl({ clientId: "abc", redirectUri: "http://x/cb" }),
+      buildAuthorizeUrl({
+        clientId: "abc",
+        redirectUri: "http://x/cb",
+        codeChallenge: "CHALLENGE",
+      }),
     );
     expect(url.origin + url.pathname).toBe("https://trakt.tv/oauth/authorize");
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("client_id")).toBe("abc");
+    expect(url.searchParams.get("code_challenge")).toBe("CHALLENGE");
+    expect(url.searchParams.get("code_challenge_method")).toBe("S256");
+  });
+});
+
+describe("PKCE", () => {
+  it("derives the RFC 7636 Appendix B challenge", async () => {
+    await expect(
+      toCodeChallenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"),
+    ).resolves.toBe("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+  });
+
+  it("generates a 43-char verifier whose challenge round-trips", async () => {
+    const { verifier, challenge } = await createPkcePair();
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    await expect(toCodeChallenge(verifier)).resolves.toBe(challenge);
+  });
+});
+
+describe("getRequestCookie", () => {
+  it("reads the named cookie out of the Cookie header", () => {
+    const req = new Request("http://x/api/trakt/callback?code=abc", {
+      headers: { cookie: "other=1; trakt_pkce_verifier=VER123; x=2" },
+    });
+    expect(getRequestCookie(req, "trakt_pkce_verifier")).toBe("VER123");
+    expect(getRequestCookie(req, "missing")).toBeNull();
+  });
+});
+
+describe("exchangeCodeForToken", () => {
+  it("sends code_verifier and no client_secret (PKCE)", async () => {
+    let body: Record<string, unknown> = {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+        body = JSON.parse(String(init.body));
+        return okJson({ access_token: "tok" });
+      }),
+    );
+    await exchangeCodeForToken({
+      clientId: "cid",
+      redirectUri: "http://x/api/trakt/callback",
+      code: "code123",
+      codeVerifier: "VERIFIER",
+    });
+    expect(body).toMatchObject({
+      code: "code123",
+      client_id: "cid",
+      grant_type: "authorization_code",
+      code_verifier: "VERIFIER",
+    });
+    expect(body).not.toHaveProperty("client_secret");
   });
 });
 
