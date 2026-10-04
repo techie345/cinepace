@@ -20,7 +20,7 @@ Discord login, and **Trakt** upstream for watch history/sync with
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in Discord OAuth credentials + TMDB key + Trakt app
+# create .env.local with the credentials below (or: vercel env pull .env.local)
 npm run dev
 npm test
 ```
