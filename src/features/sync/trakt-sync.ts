@@ -159,7 +159,11 @@ export async function exchangeCodeForToken(args: {
 }> {
   const res = await fetch(TRAKT_TOKEN_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "cinepace/0.1.0 (+https://cinepace.site51.vip)",
+    },
     body: JSON.stringify({
       code: args.code,
       client_id: args.clientId,
@@ -191,6 +195,8 @@ async function authed<T>(
     method: init?.method ?? "GET",
     headers: {
       "Content-Type": "application/json",
+      Accept: "application/json",
+      "User-Agent": "cinepace/0.1.0 (+https://cinepace.site51.vip)",
       "trakt-api-version": "2",
       "trakt-api-key": clientId,
       Authorization: `Bearer ${token}`,
