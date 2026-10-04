@@ -25,26 +25,41 @@ export async function handleTraktCallback(req: Request) {
   if (!clientId)
     return NextResponse.redirect(new URL("/search?trakt=misconfigured", req.url));
   const verifier = getRequestCookie(req, TRAKT_PKCE_COOKIE);
-  if (!verifier)
+  if (!verifier) {
+    console.error("[trakt] callback missing PKCE verifier cookie");
     return NextResponse.redirect(new URL("/search?trakt=error", req.url));
+  }
 
+  let token;
   try {
-    const token = await exchangeCodeForToken({
+    token = await exchangeCodeForToken({
       clientId,
       redirectUri: getTraktRedirectUri(req),
       code,
       codeVerifier: verifier,
     });
-    await saveTraktToken(uid, token.access_token, token.refresh_token ?? null);
-    const done = NextResponse.redirect(
-      new URL("/search?trakt=connected", req.url),
+  } catch (e) {
+    console.error(
+      "[trakt] token exchange failed:",
+      e instanceof Error ? e.message : e,
     );
-    done.cookies.set(TRAKT_PKCE_COOKIE, "", {
-      maxAge: 0,
-      path: TRAKT_PKCE_COOKIE_PATH,
-    });
-    return done;
-  } catch {
     return NextResponse.redirect(new URL("/search?trakt=error", req.url));
   }
+  try {
+    await saveTraktToken(uid, token.access_token, token.refresh_token ?? null);
+  } catch (e) {
+    console.error(
+      "[trakt] token save failed:",
+      e instanceof Error ? e.message : e,
+    );
+    return NextResponse.redirect(new URL("/search?trakt=error", req.url));
+  }
+  const done = NextResponse.redirect(
+    new URL("/search?trakt=connected", req.url),
+  );
+  done.cookies.set(TRAKT_PKCE_COOKIE, "", {
+    maxAge: 0,
+    path: TRAKT_PKCE_COOKIE_PATH,
+  });
+  return done;
 }
